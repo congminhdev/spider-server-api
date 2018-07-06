@@ -1,0 +1,7 @@
+export { IRoot } from './IRoot'
+export { IBoom } from './IBoom'
+export { IUser } from './IUser'
+export { IResponse } from './IResponse'
+export { IProduct } from './IProduct'
+export { IFavorite } from './IFavorite'
+export { ICategory } from './ICategory'

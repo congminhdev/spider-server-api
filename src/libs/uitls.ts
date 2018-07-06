@@ -1,0 +1,123 @@
+// Libs
+import * as _ from "lodash";
+import * as bcrypt from "bcryptjs";
+import * as uuid from "uuid";
+import * as async from "async";
+const path = require("path");
+const phone = require("phone");
+// Import const variables
+import { AdminService } from "../services";
+import { redis } from "../constants/const";
+//
+class Utils {
+    constructor() {}
+
+    /**
+     * Check empty
+     */
+    public isEmpty(param: any): boolean | Object | any {
+        return _.isUndefined(param) || _.isEmpty(param) || _.isEmpty(param.trim());
+    }
+
+    public removePrivacy(params): any {
+        return _.omit(params, ["password"]);
+    }
+
+    /**
+     * Hash password before save to database
+     * @param params
+     * @param callback
+     */
+    public hashPassword(params, callback): void {
+        const saltRound = 10;
+        const { password } = params;
+
+        bcrypt.hash(password, saltRound, (err, hash) => {
+            callback(err, hash);
+        });
+    }
+
+    public hashPasswordSync(password: string): any {
+        if (!password) return null;
+
+        return bcrypt.hashSync(password, bcrypt.genSaltSync(8));
+    }
+
+    public comparePassword(params, callback): void {
+        const { password, hash } = params;
+
+        bcrypt.compare(password, hash, (err, isMatch) => {
+            if (err) return callback(err);
+
+            callback(null, isMatch);
+        });
+    }
+
+    public generationID(): string {
+        return uuid.v4();
+    }
+
+    public validatePhone(params): boolean {
+        return _.size(phone(params.phone, "VN")) !== 0;
+    }
+
+    public tmpDirectory() {
+        return path.join(path.resolve(), "../../tmp/");
+    }
+
+    /**
+     * name
+     */
+    public createFileName(fileName) {
+        let arr: any = [];
+        const timeStamp = new Date().getTime();
+
+        arr = _.split(fileName, ".");
+
+        return _.toString(`${_.dropRight(arr).join("")}-${timeStamp}.${arr[arr.length - 1]}`);
+    }
+
+    /**
+     * makeRedisKeyForAns
+     */
+    public makeRedisKeyForAns({ lesson, sessionID }) {
+        return `${lesson}-${sessionID}-${redis.ansKey}`;
+    }
+
+    /**
+     * createAdminInit
+     */
+    public createAdminInit = async (): Promise<any> => {
+        const users = [
+            {
+                username: "admin",
+                password: "Abc@123456",
+                role: "1"
+            }
+        ];
+
+        return new Promise(resolve => {
+            async.eachSeries(
+                users,
+                async (user, cb) => {
+                    await AdminService.create(user);
+                    cb();
+                },
+                () => {
+                    resolve();
+                }
+            );
+        });
+    };
+
+    /**
+     * madeTelegramMessage
+     */
+    public madeTelegramMessage = (topic: any) => {
+        let message = "Author " + topic.author + " has new topic: " + topic.subject + " [link](" + topic.detail + ").";
+        return message;
+        // return `<p> Author: ${topic.name} </p> \n <p> Author: ${topic.subject} </p> \n <p> Author: ${topic.detail} </p> `
+    };
+}
+
+export default new Utils();
